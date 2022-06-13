@@ -3,7 +3,9 @@ package com.iot.server;
 import com.influxdb.annotations.Column;
 import com.influxdb.annotations.Measurement;
 
-import java.time.Instant;
+import java.time.*;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
 
 @Measurement(name = "point")
 public class Point {
@@ -24,7 +26,7 @@ public class Point {
     private Instant time;
 
     public Point() {
-        this.time = Instant.now();
+        this.time = Instant.now().plus(2, ChronoUnit.HOURS);
     }
 
     public Point(String id, Double temperature, Double humidity, int gas, int aqi) {
@@ -33,7 +35,8 @@ public class Point {
         this.humidity = humidity;
         this.gas = gas;
         this.aqi = aqi;
-        this.time = Instant.now();
+
+        this.time = Instant.now().plus(2, ChronoUnit.HOURS);
     }
 
     //methods
