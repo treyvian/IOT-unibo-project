@@ -12,6 +12,11 @@
 
 #define serverName "http://192.168.178.69:8080/endpoint"
 
+#define latitude (float)44.49435102646965
+#define longitude (float)11.346639990806581
+
+#define BUF_SIZE 5
+
 unsigned long lastTime = 0;
 // 10 minutes = 600000
 // Set timer to 5 seconds (5000)
@@ -21,11 +26,11 @@ unsigned long SAMPLE_FREQUENCY = 15000;
 DHTesp dht;
 
 //MQ-2 variables      
-int8_t ix = 0;
-int last_mesur[5];
+int8_t buf_index = 0;
+int buf[BUF_SIZE] = {0};
 int sum = 0;
-int MIN_GAS_VALUE = 100;
-int MAX_GAS_VALUE = 800;
+int MIN_GAS_VALUE = 50;
+int MAX_GAS_VALUE = 900;
 
 void setup()
 {    
@@ -48,7 +53,7 @@ void setup()
 }
 
 void loop()
-{
+{  
   //dht
   float humidity = dht.getHumidity();
   float temperature = dht.getTemperature();
@@ -57,8 +62,9 @@ void loop()
 
   //mq
   int gas = analogRead(mq2);
-
-  int avg = sliding_avg(gas, &ix);
+   
+  int avg = sliding_avg(gas);
+  Serial.println(avg); 
 
   // AQI
   int8_t AQI = 2;
@@ -68,6 +74,8 @@ void loop()
   if (avg < MAX_GAS_VALUE && MIN_GAS_VALUE <= avg){
     AQI = 1;
   }
+
+  int rssi = WiFi.RSSI();
 
   //Send an HTTP POST request every 10 minutes
   if ((millis() - lastTime) > SAMPLE_FREQUENCY) {
@@ -82,8 +90,9 @@ void loop()
 
       http.addHeader("Content-Type", "application/json");
 
-      String body = "{\"id\":" + String(chip_id) + ",\"temperature\":" + temperature +
-                 ",\"humidity\":" + humidity + ",\"gas\":" + gas + ",\"aqi\":" + AQI + "}";
+      String body = "{\"id\":" + String(chip_id) + ",\"latitude\":" + latitude + ",\"longitude\":" + longitude 
+                    + ",\"rssi\":" + rssi + ",\"temperature\":" + temperature +
+                    ",\"humidity\":" + humidity + ",\"gas\":" + gas + ",\"aqi\":" + AQI + "}";
       int httpResponseCode = http.POST(body);
 
       // Free resources
@@ -95,12 +104,11 @@ void loop()
   }
 }
 
-int sliding_avg(int new_value, int8_t* ind){
-  if (*ind > 4)
-    *ind = 0;
-  sum -= last_mesur[*ind];
+int sliding_avg(int new_value){
+  if (BUF_SIZE == buf_index) {buf_index = 0;}
+  sum -= buf[buf_index];
   sum += new_value;
-  last_mesur[*ind] = new_value;
-  *ind++;
-  return sum / 5;
+  buf[buf_index] = new_value;
+  buf_index++;
+  return sum / BUF_SIZE;
 }
