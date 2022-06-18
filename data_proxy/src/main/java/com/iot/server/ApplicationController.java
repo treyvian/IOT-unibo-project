@@ -1,21 +1,34 @@
 package com.iot.server;
 
+import com.google.gson.Gson;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.InfluxDBClientFactory;
 import com.influxdb.client.WriteApiBlocking;
 import com.influxdb.client.domain.WritePrecision;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
+
+import org.springframework.integration.annotation.ServiceActivator;
+import org.springframework.integration.channel.DirectChannel;
+import org.springframework.integration.core.MessageProducer;
+import org.springframework.integration.mqtt.inbound.MqttPahoMessageDrivenChannelAdapter;
+import org.springframework.integration.mqtt.support.DefaultPahoMessageConverter;
+
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.MessageHandler;
+import org.springframework.messaging.MessagingException;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 
-// This annotation instructs Spring to initialize its configuration - which is needed to start a
-// new application
+// This annotation instructs Spring to initialize its configuration - which is needed to start a new application
 @SpringBootApplication
-// Indicates that this class contains RESTful methods to handle incoming HTTP requests
 @RestController
 public class ApplicationController {
 
@@ -56,4 +69,41 @@ public class ApplicationController {
 		}
 		return false;
 	}
+
+	// MQTT
+
+	@Bean
+    public MessageChannel mqttInputChannel() {
+        return new DirectChannel();
+    }
+
+	@Bean
+    public MessageProducer inbound() {
+        MqttPahoMessageDrivenChannelAdapter adapter =
+                new MqttPahoMessageDrivenChannelAdapter(
+					"tcp://192.168.178.69:1883", 
+				"dataProxy",
+                "esp32/point");
+        adapter.setCompletionTimeout(5000);
+        adapter.setConverter(new DefaultPahoMessageConverter());
+        adapter.setQos(1);
+        adapter.setOutputChannel(mqttInputChannel());
+        return adapter;
+    }
+
+	@Bean
+    @ServiceActivator(inputChannel = "mqttInputChannel")
+    public MessageHandler handler() {
+        return new MessageHandler() {
+
+            @Override
+            public void handleMessage(Message<?> message) throws MessagingException {
+				Point p = new Gson().fromJson(message.getPayload().toString(), Point.class);
+
+				writeApi.writeMeasurement(WritePrecision.NS, p);
+				System.out.println(p.toString());
+            }
+
+        };
+    }
 }

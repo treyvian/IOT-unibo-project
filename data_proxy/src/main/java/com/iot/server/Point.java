@@ -1,5 +1,6 @@
 package com.iot.server;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.influxdb.annotations.Column;
 import com.influxdb.annotations.Measurement;
 
@@ -9,23 +10,31 @@ import java.time.Instant;
 public class Point {
 
     // Attributes
+    @JsonProperty("id")
     @Column(tag = true)
     String id;
+    @JsonProperty("latitude")
+    @Column(tag = true)
+    Double latitude;
+    @JsonProperty("longitude")
+    @Column(tag = true)
+    Double longitude;
     
+    @JsonProperty("temperature")
     @Column
     Double temperature;
+    @JsonProperty("humidity")
     @Column
     Double humidity;
+    @JsonProperty("gas")
     @Column
     int gas;
+    @JsonProperty("aqi")
     @Column
     int aqi;
+    @JsonProperty("rssi")
     @Column
     int rssi;
-    @Column
-    Double latitude;
-    @Column
-    Double longitude;
 
     @Column(timestamp = true)
     private Instant time;
