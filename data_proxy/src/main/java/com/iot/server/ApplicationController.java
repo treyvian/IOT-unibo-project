@@ -6,6 +6,10 @@ import com.influxdb.client.InfluxDBClientFactory;
 import com.influxdb.client.WriteApiBlocking;
 import com.influxdb.client.domain.WritePrecision;
 
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.core.aop.TimedAspect;
+import io.micrometer.core.instrument.MeterRegistry;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -20,7 +24,6 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
 import org.springframework.messaging.MessagingException;
-
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -50,6 +53,11 @@ public class ApplicationController {
 		writeApi = client.getWriteApiBlocking();
 	}
 
+	@Bean
+	public TimedAspect timedAspect(MeterRegistry registry) {
+		return new TimedAspect(registry);
+	}
+
 
 	@GetMapping("/simple-request")
 	public String simpleRequest() {
@@ -58,7 +66,9 @@ public class ApplicationController {
 	}
 
 	@PostMapping("/endpoint")
+	@Timed(value = "post.time", description = "Time taken to execute the post method")
 	public Boolean post_catch(@RequestBody Point point) {
+		System.out.println("Receiving data with http protocol:");
 		writeApi.writeMeasurement(WritePrecision.NS, point);
 
 
@@ -78,6 +88,7 @@ public class ApplicationController {
     }
 
 	@Bean
+	@Timed(value = "mqtt_prod.time", description = "Time taken to execute the MessageProducer method")
     public MessageProducer inbound() {
         MqttPahoMessageDrivenChannelAdapter adapter =
                 new MqttPahoMessageDrivenChannelAdapter(
@@ -93,6 +104,7 @@ public class ApplicationController {
 
 	@Bean
     @ServiceActivator(inputChannel = "mqttInputChannel")
+	@Timed(value = "mqtt_handler.time", description = "Time taken to execute the MessageHandler method")
     public MessageHandler handler() {
         return new MessageHandler() {
 
@@ -101,6 +113,7 @@ public class ApplicationController {
 				Point p = new Gson().fromJson(message.getPayload().toString(), Point.class);
 
 				writeApi.writeMeasurement(WritePrecision.NS, p);
+				System.out.println("Receiving data with mqtt protocol:");
 				System.out.println(p.toString());
             }
 
