@@ -90,6 +90,7 @@ void loop(){
                       + ",\"rssi\":" + rssi + ",\"temperature\":" + temperature +
                       ",\"humidity\":" + humidity + ",\"gas\":" + gas + ",\"aqi\":" + AQI + "}";
       if(is_http){
+        Serial.println("http protocol");
         HTTPClient http;
         // Your Domain name with URL path or IP address with path
         http.begin(wifi_client_http, serverName);
@@ -102,6 +103,7 @@ void loop(){
         // Free resources
         http.end();
       } else {
+        Serial.println("Mqtt protocol");
         client.publish("esp32/point", body.c_str());
       }
     } else {
