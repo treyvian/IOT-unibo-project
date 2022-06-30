@@ -1,2 +1,5 @@
 # IOT-unibo-project
-conda install fbprophet -c conda-forge -c defaults --override-channels
+
+# IoT-Based Indoor Air Quality Monitoring System
+
+Full details can be found in the report.pdf
