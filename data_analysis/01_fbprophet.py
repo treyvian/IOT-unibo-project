@@ -1,12 +1,13 @@
 """Generate the time series prediction required in the data analysis"""
 
-import pandas as pd
-import numpy as np
-import time
-from datetime import datetime
-from fbprophet import Prophet
 import math
 import sys, getopt
+import argparse
+import time
+from datetime import datetime
+import pandas as pd
+import numpy as np
+from fbprophet import Prophet
 
 from utils import TO_PREDICT, BUCKET_NAME, INLFUX_URL, TOKEN, ORG
 
@@ -16,20 +17,12 @@ from influxdb_client.client.write_api import SYNCHRONOUS
 from utils import run_prophet, forecast_to_line
 
 if __name__ == "__main__":
-    argv = sys.argv[1:]
-    period = 0
+    
+    parser = argparse.ArgumentParser(description='')
+    parser.add_argument('--x', dest='x', type=int, default=0)
+    args = parser.parse_args()
 
-    try:
-        opts, args = getopt.getopt(argv,"hx:")
-    except getopt.GetoptError:
-        print('01_fbprophet.py -x <num-to-predict>')
-        sys.exit(2)
-    for opt, arg in opts:
-        if opt == '-h':
-            print('01_fbprophet.py -x <num-to-predict>')
-            sys.exit()
-        elif opt in ("-x"):
-            period = int(arg)
+    period = args.x 
 
 
     lines_list = []
